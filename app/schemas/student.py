@@ -6,7 +6,6 @@ class StudentBase(BaseModel):
     last_name: str
     email: str
     photo_url: Optional[str] = None
-    class_id: int
 
 class StudentCreate(StudentBase):
     pass

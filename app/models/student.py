@@ -9,4 +9,3 @@ class Student(Base):
     last_name = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False)
     photo_url = Column(String, nullable=True)
-    class_id = Column(Integer, nullable=False)
