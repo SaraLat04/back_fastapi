@@ -18,3 +18,6 @@ class User(Base):
     hashed_password = Column(String, nullable=False)  # Le bon champ
     is_active = Column(Boolean, default=True)
     role = Column(Enum(RoleEnum), nullable=False)  # Enum pour le rôle
+
+    # Relation avec la table Seance
+    classes = relationship("Classe", back_populates="user")

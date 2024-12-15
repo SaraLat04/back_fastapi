@@ -4,6 +4,9 @@ from app.db.database import Base, engine
 from app.models.User import User
 from app.routers import users
 from app.routers import auth
+from app.routers import classe
+
+from app.models.classe import Classe
 
 # Création des tables
 Base.metadata.create_all(bind=engine)
@@ -15,3 +18,4 @@ app.include_router(student.router)
 
 app.include_router(users.router)
 app.include_router(auth.router)
+app.include_router(classe.router)
