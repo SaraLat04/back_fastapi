@@ -17,4 +17,5 @@ class User(Base):
     email = Column(String, unique=True, nullable=False)
     hashed_password = Column(String, nullable=False)  # Le bon champ
     is_active = Column(Boolean, default=True)
-    role = Column(Enum(RoleEnum), nullable=False)  # Enum pour le rôle
+    role = Column(Enum(RoleEnum), nullable=False)  # Enum pour le rôle   
+    classes = relationship("Classe", back_populates="teacher")

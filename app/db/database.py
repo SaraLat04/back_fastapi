@@ -3,7 +3,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 # Configuration de la base de données PostgreSQL
-DATABASE_URL = "postgresql://postgres:ArasPost@localhost:5432/gestion_absences"
+#DATABASE_URL = "postgresql://postgres:ArasPost@localhost:5432/gestion_absences"
+DATABASE_URL = "postgresql://postgres:1234@localhost:5440/bourkoukouProject"
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
