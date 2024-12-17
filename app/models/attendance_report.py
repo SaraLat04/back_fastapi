@@ -7,3 +7,4 @@ class AttendanceReport(Base):
     id = Column(Integer, primary_key=True, index=True,autoincrement=True)
     total_absences = Column(Integer, nullable=False)
     total_present = Column(Integer, nullable=False)
+

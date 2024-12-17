@@ -9,13 +9,15 @@ import cv2
 import numpy as np
 from fastapi.responses import JSONResponse, HTMLResponse
 from datetime import date
-from app.models import Attendance, User, report, attendance_report, motivation_report, emotion
+from app.models import Attendance, User, attendance_report, motivation_report, emotion
+from app.models.report import Report
 from app.models.student import Student
 from app.models.classe import Classe
 from app.models.Attendance import Attendance, AttendanceStatus
 from deepface import DeepFace
 from typing import List
 import base64
+from fpdf import FPDF
 
 router = APIRouter(prefix="/students", tags=["students"])
 
@@ -207,8 +209,54 @@ def filter_faces_by_class(faces, class_id, db):
         if os.path.exists(face_path):
             os.remove(face_path)
     return recognized_faces
+
+def generate_attendance_pdf(recognized_students, absent_students, db, class_id, user_id):
+    """Generate a PDF report of attendance."""
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+
+    pdf.cell(200, 10, txt="Attendance Report", ln=True, align="C")
+    pdf.cell(200, 10, txt=f"Date: {date.today()}", ln=True, align="C")
+    pdf.ln(10)
+
+    pdf.cell(40, 10, txt="ID", border=1)
+    pdf.cell(60, 10, txt="Name", border=1)
+    pdf.cell(60, 10, txt="Email", border=1)
+    pdf.cell(30, 10, txt="Status", border=1)
+    pdf.ln()
+
+    def add_student_to_pdf(student, status):
+        pdf.cell(40, 10, txt=str(student.id), border=1)
+        pdf.cell(60, 10, txt=f"{student.first_name} {student.last_name}", border=1)
+        pdf.cell(60, 10, txt=student.email, border=1)
+        pdf.cell(30, 10, txt=status, border=1)
+        pdf.ln()
+
+    for student in recognized_students:
+        add_student_to_pdf(student, "Present")
+
+    for student in absent_students:
+        add_student_to_pdf(student, "Absent")
+
+    pdf_output_path = f"attendance_reports/attendance_{date.today()}.pdf"
+    os.makedirs("attendance_reports", exist_ok=True)
+    pdf.output(pdf_output_path)
+
+    # Store the report in the database
+    report = Report(
+        class_id=class_id,
+        generated_by=user_id,
+        date_generated=str(date.today()),
+        file_path=pdf_output_path
+    )
+    db.add(report)
+    db.commit()
+
+    return pdf_output_path
+
 @router.websocket("/scan-attendance")
-async def websocket_scan_attendance(websocket: WebSocket, db: Session = Depends(get_db)):
+async def websocket_scan_attendance(websocket: WebSocket, db: Session = Depends(get_db), user_id: int = 1):
     """WebSocket endpoint for attendance scanning."""
     await websocket.accept()
 
@@ -236,6 +284,9 @@ async def websocket_scan_attendance(websocket: WebSocket, db: Session = Depends(
             all_student_ids = set(student.id for student in all_students)
             absent_student_ids = all_student_ids - recognized_student_ids
 
+            recognized_students = [student for student in all_students if student.id in recognized_student_ids]
+            absent_students = [student for student in all_students if student.id in absent_student_ids]
+
             for student_id in recognized_student_ids:
                 attendance = Attendance(
                     student_id=student_id,
@@ -256,7 +307,8 @@ async def websocket_scan_attendance(websocket: WebSocket, db: Session = Depends(
 
             db.commit()
 
-            result_message = f"Present: {', '.join(map(str, recognized_student_ids))}; Absent: {', '.join(map(str, absent_student_ids))}"
+            pdf_path = generate_attendance_pdf(recognized_students, absent_students, db, class_id, user_id)
+            result_message = f"Present: {', '.join(map(str, recognized_student_ids))}; Absent: {', '.join(map(str, absent_student_ids))}; PDF Report: {pdf_path}"
             await websocket.send_text(result_message)
 
     except WebSocketDisconnect:
