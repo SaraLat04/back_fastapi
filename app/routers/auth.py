@@ -36,9 +36,10 @@ def login(form_data: UserAuth, db: Session = Depends(get_db)):
         data={"sub": user.email}, expires_delta=access_token_expires
     )
     
-    # Retourner le token et le rôle de l'utilisateur
+    # Retourner le token, le rôle et l'ID de l'utilisateur
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "role": user.role.value  # Assurez-vous que role est de type Enum
+        "role": user.role.value,  # Assurez-vous que role est de type Enum
+        "id": user.id  # Ajouter l'ID de l'utilisateur
     }

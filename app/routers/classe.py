@@ -1,15 +1,21 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import Header, APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.schemas.classe import ClasseCreate, ClasseResponse
 from app.crud.classe import create_classe, update_classe, delete_classe, get_classe_by_id, get_all_classes
 from app.models.classe import Classe
 from typing import List
+from app.models.User import User
 
 router = APIRouter(prefix="/classes", tags=["classes"])
 
 @router.post("/", response_model=ClasseResponse)
 def add_classe(classe: ClasseCreate, db: Session = Depends(get_db)):
+    # Vérification du rôle teacher pour l'id_teacher
+    teacher = db.query(User).filter(User.id == classe.id_teacher, User.role == 'teacher').first()
+    if not teacher:
+        raise HTTPException(status_code=400, detail="L'utilisateur spécifié n'est pas un enseignant.")
+    
     new_classe = create_classe(db, classe.nom, classe.id_teacher)
     return new_classe
 
@@ -42,4 +48,11 @@ def get_all_classes_route(db: Session = Depends(get_db), skip: int = 0, limit: i
     classes = get_all_classes(db, skip, limit)
     if not classes:
         raise HTTPException(status_code=404, detail="Aucune classe trouvée")
+    return classes
+
+@router.get("/teacher/{teacherId}", response_model=List[ClasseResponse])
+def get_classes_for_teacher(teacherId: int, db: Session = Depends(get_db)):
+    classes = db.query(Classe).filter(Classe.id_teacher == teacherId).all()
+    if not classes:
+        raise HTTPException(status_code=404, detail="Aucune classe trouvée pour cet enseignant.")
     return classes
